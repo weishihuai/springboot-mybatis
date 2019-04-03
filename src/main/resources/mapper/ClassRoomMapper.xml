@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wsh.springboot.springbootmybatis.mapper.ClassRoomMapper">
+
+    <!--根据班级ID查询班级信息-->
+    <select id="selectClassRoomById" resultType="java.util.Map">
+        SELECT *
+        FROM tbl_class t
+        WHERE t.c_id = #{cid}
+    </select>
+
+    <!--             一对一关联查询: 查询所有的班级以及关联的教师信息     -->
+
+    <!--第一种方式：嵌套结果-->
+    <resultMap id="oneToOne01" type="com.wsh.springboot.springbootmybatis.entity.ClassRoom">
+        <!--
+            column: 数据表中的字段名称
+            property: 实体类中的属性名称
+        -->
+        <id column="c_id" property="cid"/>
+        <result column="c_name" property="cname"/>
+        <!--
+            javaType: 指定返回结果集中的对象属性类型(全限定名)
+        -->
+        <association property="teacher" javaType="com.wsh.springboot.springbootmybatis.entity.Teacher">
+            <id column="t_id" property="tid"/>
+            <result column="t_name" property="tname"/>
+        </association>
+    </resultMap>
+
+    <select id="getAllClassRoomAndTeacherInfo01" resultMap="oneToOne01">
+        SELECT *
+        FROM tbl_class t1
+                 LEFT JOIN tbl_teacher t2
+                           ON t1.teacher_id = t2.t_id
+    </select>
+
+    <!--第二种方式：嵌套查询/分步查询-->
+    <resultMap id="oneToOne02" type="com.wsh.springboot.springbootmybatis.entity.ClassRoom">
+        <id column="c_id" property="cid"/>
+        <result column="c_name" property="cname"/>
+        <!--
+            property: ClassRoom类中教师类的属性名称
+            column: 所对应的外键字段名称
+            select: 根据第一步查询出的教师ID查询教师信息
+         -->
+        <association property="teacher" select="getTeacherById" column="teacher_id"/>
+    </resultMap>
+
+    <select id="getAllClassRoomAndTeacherInfo02" resultMap="oneToOne02">
+        SELECT *
+        FROM tbl_class t1
+    </select>
+
+    <select id="getTeacherById" resultType="com.wsh.springboot.springbootmybatis.entity.Teacher">
+        SELECT t3.t_id   AS tid,
+               t3.t_name AS tname
+        FROM tbl_teacher t3
+        WHERE t3.t_id = #{tid}
+    </select>
+
+
+    <!--第二种方式：使用拓展VO实现-->
+    <select id="getAllClassRoomAndTeacherInfo03" resultType="com.wsh.springboot.springbootmybatis.vo.ClassRoomTzVO">
+        SELECT t1.c_id   AS cid,
+               t1.c_name AS cname,
+               t2.t_id   AS tid,
+               t2.t_name AS tname
+        FROM tbl_class t1
+                 LEFT JOIN tbl_teacher t2
+                           ON t1.teacher_id = t2.t_id
+    </select>
+
+
+    <!--             一对多关联查询: 查询所有的班级以及班级的所有学生信息、教师信息     -->
+
+    <!--第一种方式: 嵌套结果方式 -->
+    <resultMap id="oneToMany01" type="com.wsh.springboot.springbootmybatis.entity.ClassRoom">
+        <id column="c_id" property="cid"/>
+        <result column="c_name" property="cname"/>
+        <!--教师信息-->
+        <association property="teacher" javaType="com.wsh.springboot.springbootmybatis.entity.Teacher">
+            <id column="t_id" property="tid"/>
+            <result column="t_name" property="tname"/>
+        </association>
+        <!--学生集合信息-->
+        <!--
+            property: 指定ClassRoom类声明的学生集合的属性名称
+            ofType: 指定返回集合中的对象类型(全限定名)
+        -->
+        <collection property="students" ofType="com.wsh.springboot.springbootmybatis.entity.Student">
+            <id column="s_id" property="sid"/>
+            <result column="s_name" property="sname"/>
+        </collection>
+    </resultMap>
+
+    <select id="getAllStudents01" resultMap="oneToMany01">
+        SELECT *
+        FROM tbl_class t1
+                 LEFT JOIN tbl_teacher t2
+                           ON t1.teacher_id = t2.t_id
+                 LEFT JOIN tbl_student t3
+                           ON t1.c_id = t3.class_id
+    </select>
+
+
+    <!--第二种方式: 嵌套查询(分步查询) -->
+    <select id="getTeacherById2" resultType="com.wsh.springboot.springbootmybatis.entity.Teacher">
+        SELECT t3.t_id   AS tid,
+               t3.t_name AS tname
+        FROM tbl_teacher t3
+        WHERE t3.t_id = #{tid}
+    </select>
+
+    <select id="getStudentsByCId" resultType="com.wsh.springboot.springbootmybatis.entity.Student">
+        SELECT t.s_id as sid, t.s_name as sname
+        from tbl_student t
+        where t.class_id = #{cid}
+    </select>
+
+    <resultMap id="oneToMany02" type="com.wsh.springboot.springbootmybatis.entity.ClassRoom">
+        <id column="c_id" property="cid"/>
+        <result column="c_name" property="cname"/>
+        <!--
+            select: 指定上一步骤查询出来的结果传到下一步该执行的SQL
+        -->
+        <association property="teacher" column="teacher_id"
+                     javaType="com.wsh.springboot.springbootmybatis.entity.Teacher" select="getTeacherById2"/>
+        <collection property="students" column="c_id" ofType="com.wsh.springboot.springbootmybatis.entity.Student"
+                    select="getStudentsByCId"/>
+    </resultMap>
+
+    <select id="getAllStudents02" resultMap="oneToMany02">
+        SELECT t.*
+        FROM tbl_class t
+    </select>
+
+
+    <!--             一对多关联查询扩展: 递归查找测评项信息以及子测评项信息(树结构数据)     -->
+
+    <!--递归查找所有的测评项以及子测评项-->
+    <select id="getAllItemsAndChildItems" resultMap="oneToMany03">
+        SELECT * FROM tbl_item t where 1 = 1
+        <choose>
+            <when test="id == null ">
+                and t.parent_item_id is null
+            </when>
+            <otherwise>
+                and t.item_id = #{id}
+            </otherwise>
+        </choose>
+
+    </select>
+
+    <resultMap id="oneToMany03" type="com.wsh.springboot.springbootmybatis.entity.Item">
+        <id column="item_id" property="itemId"/>
+        <result column="item_name" property="itemName"/>
+        <result column="zt" property="zt"/>
+        <collection property="children" ofType="com.wsh.springboot.springbootmybatis.entity.Item"
+                    javaType="java.util.List" column="{id=item_id}"
+                    select="getItemById"/>
+    </resultMap>
+
+    <!--根据父级测评项查找子测评项-->
+    <select id="getItemById" resultMap="oneToMany03">
+        SELECT *
+        FROM tbl_item t
+        WHERE t.parent_item_id = #{id}
+    </select>
+
+
+</mapper>
+
+
