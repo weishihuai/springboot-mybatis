@@ -14,7 +14,7 @@
     <!--第一种方式：嵌套结果-->
     <resultMap id="oneToOne01" type="com.wsh.springboot.springbootmybatis.entity.ClassRoom">
         <!--
-            column: 数据表中的字段名称
+            column: 对应的是查询的别名，而不是表字段名(当然这里没取别名就是表字段名)
             property: 实体类中的属性名称
         -->
         <id column="c_id" property="cid"/>
@@ -149,26 +149,32 @@
                 and t.item_id = #{id}
             </otherwise>
         </choose>
-
     </select>
 
     <resultMap id="oneToMany03" type="com.wsh.springboot.springbootmybatis.entity.Item">
         <id column="item_id" property="itemId"/>
         <result column="item_name" property="itemName"/>
         <result column="zt" property="zt"/>
+        <!--
+            ofType: 指定返回结果集的类型
+            column:
+            多列的值传递的方式如下: column="{key1=column1,key2=column2}"，key1是方法的参数名，column1是字段名， key2是方法的参数名，column2是字段名
+        -->
         <collection property="children" ofType="com.wsh.springboot.springbootmybatis.entity.Item"
                     javaType="java.util.List" column="{id=item_id}"
                     select="getItemById"/>
     </resultMap>
 
     <!--根据父级测评项查找子测评项-->
+    <!--
+        注意: 如果是递归查询,这里别忘了指定resultMap哦
+    -->
     <select id="getItemById" resultMap="oneToMany03">
         SELECT *
         FROM tbl_item t
         WHERE t.parent_item_id = #{id}
     </select>
-
-
+    
 </mapper>
 
 
