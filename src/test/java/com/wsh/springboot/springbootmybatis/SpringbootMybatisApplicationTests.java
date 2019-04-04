@@ -1,5 +1,6 @@
 package com.wsh.springboot.springbootmybatis;
 
+import com.alibaba.fastjson.JSON;
 import com.wsh.springboot.springbootmybatis.entity.ClassRoom;
 import com.wsh.springboot.springbootmybatis.entity.Item;
 import com.wsh.springboot.springbootmybatis.mapper.ClassRoomMapper;
@@ -76,6 +77,7 @@ public class SpringbootMybatisApplicationTests {
     @Test
     public void testGetAllItemsAndChildItems() {
         List<Item> items = classRoomMapper.getAllItemsAndChildItems(null);
+        System.out.println(JSON.toJSONString(items));
         for (Item item : items) {
             System.out.println(item.getItemName());
             System.out.println(item.getChildren());
