@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wsh.springboot.springbootmybatis.mapper.StudentMapper">
+
+    <!--
+        动态sql: 为了减少各种条件判断然后拼接sql的复杂性，如拼接时要确保不能忘记添加必要的空格，还要注意去掉列表最后一个列名的逗号
+        MyBatis 采用功能强大的基于 OGNL 的表达式来快速实现sql的拼接
+        常用的标签有: if / choose(when、otherwise) / foreach / set / trim / where / sql等
+    -->
+
+    <!--if-->
+    <select id="testIf" resultType="java.util.Map">
+        select *
+        from tbl_student t
+        where 1 = 1
+        <if test="sid != null and sid != ''">
+            and t.s_id = #{sid}
+        </if>
+        <if test="sname != null and sname != ''">
+            and t.s_name = #{sname}
+        </if>
+    </select>
+
+    <!--choose(when/otherwise)-->
+    <select id="testChoose" resultType="java.util.Map">
+        select *
+        from tbl_student t
+        where 1 = 1
+        <choose>
+            <when test="sid != null and sid != ''">
+                and t.s_id = #{sid}
+            </when>
+            <when test="sname != null and sname != ''">
+                and t.s_name = #{sname}
+            </when>
+            <otherwise>
+                and t.s_id in (1,2)
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="testWhere01" resultType="map">
+        /*假设只有第二个条件满足，此时sql： select * from tbl_student t where and t.s_name = 'xxx' 明显不正确
+        此时，可以使用where标签来帮助我们去掉多余的and
+        */
+        select *
+        from tbl_student t
+        where
+        <if test="sid != null and sid != ''">
+            t.s_id = #{sid}
+        </if>
+        <if test="sname != null and sname != ''">
+            and t.s_name = #{sname}
+        </if>
+    </select>
+
+    <!--where-->
+    <select id="testWhere02" resultType="map">
+        select *
+        from tbl_student t
+        <where>
+            <if test="sid != null and sid != ''">
+                and t.s_id = #{sid}
+            </if>
+            <if test="sname != null and sname != ''">
+                and t.s_name = #{sname}
+            </if>
+        </where>
+    </select>
+
+    <!--使用trim实现where等价的功能-->
+    <select id="testTrimWhere" resultType="map">
+        select *
+        from tbl_student t
+        /*
+        trim标签: 一般用于去除sql语句中多余的and关键字，逗号，或者给sql语句前拼接 “where“、“set“以及“values(“ 等前缀，或者添加“)“等后缀
+        prefix: 给sql语句拼接的前缀
+        prefixOverrides: 去除sql语句前面的关键字或者字符，假设该属性指定为”AND”，当sql语句的开头为”AND”，trim标签将会去除该”AND”
+        suffix: 给sql语句拼接的后缀
+        suffixOverrides: 去除sql语句后面的关键字或者字符
+        */
+        <trim prefix="where" prefixOverrides="and | or">
+            <if test="sid != null and sid != ''">
+                and t.s_id = #{sid}
+            </if>
+            <if test="sname != null and sname != ''">
+                and t.s_name = #{sname}
+            </if>
+        </trim>
+    </select>
+
+    <!--set-->
+    <!--
+        set标签: 可以自动去除sql中的多余的逗号‘,’
+    -->
+    <update id="testSet">
+        update tbl_student t
+        /*此时执行的sql为: update tbl_student t SET s_name = ? WHERE s_id = ? */
+        <set>
+            <if test="sname != null and sname != ''">
+                s_name = #{sname},
+            </if>
+        </set>
+        <where>
+            s_id = #{sid}
+        </where>
+    </update>
+
+    <!--使用trim实现set同样的功能-->
+    <update id="testSetTrim">
+        update tbl_student t
+        <trim prefixOverrides="," prefix="set" suffixOverrides=",">
+            <if test="sname != null and sname != ''">
+                ,s_name = #{sname},
+            </if>
+        </trim>
+        <where>
+            s_id = #{sid}
+        </where>
+    </update>
+
+
+    <!--foreach-->
+    <select id="testForEach" resultType="map">
+        select * from tbl_student t
+        where 1 = 1
+        and t.s_id in
+        /*
+        foreach标签:主要用在构建in条件中，迭代一个集合
+        item: 表示集合中每一个元素进行迭代时的别名，
+        index: 指 定一个名字，用于表示在迭代过程中，每次迭代到的位置，
+        open: 表示该语句以什么开始，
+        separator: 表示在每次进行迭代之间以什么符号作为分隔符，
+        close: 表示以什么结束。
+        */
+        <foreach collection="pkids" open="(" close=")" separator="," index="index" item="pkid">
+            #{pkid}
+        </foreach>
+    </select>
+
+    <!--sql-->
+    <!--
+        sql片段：就是预先定义后的一些sql语句。等其他sql需要的时候直接拿来用
+        id : sql片段的唯一标识,在需要引用sql片段的时候使用 <include refid="student_column"/> 标签引入即可
+        尽量使用单表的字段来定义sql片段，重用性高
+    -->
+    <sql id="student_column">
+        s_id,
+        s_name
+    </sql>
+
+    <select id="testSql" resultType="map">
+        select
+        <include refid="student_column"/>
+        from tbl_student
+    </select>
+
+</mapper>
+
+
