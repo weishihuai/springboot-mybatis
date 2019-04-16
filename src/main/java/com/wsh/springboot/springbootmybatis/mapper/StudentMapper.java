@@ -55,4 +55,25 @@ public interface StudentMapper {
      * sql
      */
     List<Map<String, Object>> testSql();
+
+
+    /**
+     * mybatis传复杂参数(不使用@Param("xxx")指定参数名称)
+     */
+    List<Map<String, Object>> getStudentsByListNoParamName(List<Integer> pkids);
+
+    List<Map<String, Object>> getStudentsByArrayNoParamName(Integer[] pkids);
+
+    List<Map<String, Object>> getStudentsByMapNoParamName(Map<String, Object> param);
+
+
+    /**
+     * mybatis传复杂参数(使用@Param("xxx")指定参数名称)
+     */
+    List<Map<String, Object>> getStudentsByListWithParamName(@Param("xsids") List<Integer> pkids);
+
+    List<Map<String, Object>> getStudentsByArrayWithParamName(@Param("xsids") Integer[] pkids);
+
+    List<Map<String, Object>> getStudentsByMapWithParamName(@Param("paramMap") Map<String, Object> param);
+
 }
